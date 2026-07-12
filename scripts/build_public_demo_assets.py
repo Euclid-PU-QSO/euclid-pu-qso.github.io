@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
+import shutil
 from pathlib import Path
 
-SEED = "euclid-public-demo-2026-03-19"
 WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 PRIVATE_REPO = WORKSPACE_ROOT / "euclid_qso_repo"
 PUBLIC_REPO = Path(__file__).resolve().parents[1]
@@ -16,6 +15,8 @@ PRIVATE_SAMPLE_JSON = PRIVATE_REPO / "data" / "euclid-published-sample.json"
 PRIVATE_COMPARISON_JSON = PRIVATE_REPO / "data" / "other-quasar-sample.json"
 PRIVATE_SKY_MAP_JSON = PRIVATE_REPO / "data" / "sky-map-overlays.json"
 PRIVATE_SITE_DATA_JS = PRIVATE_REPO / "assets" / "site-data.js"
+PRIVATE_CUTOUT_DIR = PRIVATE_REPO / "assets" / "generated" / "cutouts"
+PRIVATE_SPECTRUM_DIR = PRIVATE_REPO / "assets" / "generated" / "spectra"
 
 PUBLIC_SAMPLE_JSON = PUBLIC_REPO / "data" / "euclid-published-sample.json"
 PUBLIC_COMPARISON_JSON = PUBLIC_REPO / "data" / "other-quasar-sample.json"
@@ -24,8 +25,55 @@ PUBLIC_SAMPLE_JS = PUBLIC_REPO / "assets" / "published-sample.js"
 PUBLIC_SKY_MAP_JS = PUBLIC_REPO / "assets" / "sky-map-overlays.js"
 PUBLIC_SITE_DATA_JS = PUBLIC_REPO / "assets" / "site-data.js"
 PUBLIC_CSV = PUBLIC_REPO / "downloads" / "euclid-published-sample.csv"
-PUBLIC_SPECTRUM_PLACEHOLDER = "assets/placeholders/spectrum-placeholder.svg"
-PUBLIC_CUTOUT_PLACEHOLDER = "assets/placeholders/cutout-placeholder.svg"
+PUBLIC_CUTOUT_DIR = PUBLIC_REPO / "assets" / "generated" / "cutouts"
+PUBLIC_SPECTRUM_DIR = PUBLIC_REPO / "assets" / "generated" / "spectra"
+
+# Published values from Yang et al. (2026), Table A.3.
+PUBLISHED_VALUES = {
+    "J1729+6410": (7.77, -25.05, 22.02),
+    "J1253+7054": (7.69, -24.06, 22.97),
+    "J1012+6630": (7.61, -23.98, 23.00),
+    "J0522-5127": (7.50, -24.75, 22.17),
+    "J1355+7000": (7.45, -25.01, 21.89),
+    "J1445+7143": (7.36, -24.10, 22.78),
+    "J1418+6949": (7.35, -24.00, 22.88),
+    "J1631+6259": (7.33, -24.69, 22.19),
+    "J0412-5639": (7.17, -24.41, 22.42),
+    "J1340+6747": (7.05, -23.67, 23.12),
+    "J1722+5741": (7.01, -23.93, 22.84),
+    "J1614+4528": (7.00, -23.80, 22.97),
+    "J0933+7427": (6.96, -24.98, 21.77),
+    "J1555+5152": (6.95, -24.53, 22.22),
+    "J0502-3849": (6.90, -25.46, 21.27),
+    "J0526-4609": (6.89, -25.19, 21.54),
+    "J0250-5317": (6.86, -25.17, 21.55),
+    "J1707+6502": (6.84, -24.46, 22.25),
+    "J1543+4718": (6.84, -24.35, 22.36),
+    "J0252-4125": (6.83, -25.32, 21.39),
+    "J1434+6857": (6.82, -23.67, 23.04),
+    "J1505+7734": (6.72, -24.52, 22.06),
+    "J1537+5829": (6.68, -24.10, 22.58),
+    "J0443-5332": (6.67, -24.45, 22.22),
+    "J0451-3426": (6.65, -24.57, 22.10),
+    "J1155+7046": (6.65, -23.84, 22.83),
+    "J0446-5700": (6.64, -24.19, 22.48),
+    "J0916+6836": (6.64, -24.94, 21.73),
+    "J1811+6145": (6.63, -24.60, 22.07),
+    "J1732+6016": (6.61, -25.37, 21.30),
+    "J0315-6844": (6.60, -25.42, 21.26),
+}
+
+PUBLISHED_SUPPLEMENTS = [
+    {
+        "id": "J0502-3849",
+        "name": "J0502-3849",
+        "ra": "75.670542",
+        "dec": "-38.818361",
+        "instrument": "FIRE",
+        "group": "Published",
+        "paperIds": [],
+    }
+]
 
 
 def load_json(path: Path) -> object:
@@ -37,112 +85,39 @@ def save_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def deterministic_offset(identifier: str, field: str, amplitude: float) -> float:
-    digest = hashlib.sha256(f"{SEED}:{identifier}:{field}".encode("utf-8")).digest()
-    value = int.from_bytes(digest[:8], "big") / 2**64
-    return ((value * 2.0) - 1.0) * amplitude
-
-
-def deterministic_signed_range(
-    identifier: str,
-    field: str,
-    minimum: float,
-    maximum: float,
-) -> float:
-    sign_digest = hashlib.sha256(f"{SEED}:{identifier}:{field}:sign".encode("utf-8")).digest()
-    magnitude_digest = hashlib.sha256(
-        f"{SEED}:{identifier}:{field}:magnitude".encode("utf-8")
-    ).digest()
-    sign = -1.0 if sign_digest[0] % 2 else 1.0
-    value = int.from_bytes(magnitude_digest[:8], "big") / 2**64
-    magnitude = minimum + value * (maximum - minimum)
-    return sign * magnitude
-
-
-def clamp(value: float, minimum: float, maximum: float) -> float:
-    return min(maximum, max(minimum, value))
-
-
-def wrap_ra_degrees(value: float) -> float:
-    return value % 360.0
-
-
-def j2000_name_from_coords(ra_deg: float, dec_deg: float) -> str:
-    ra_hours = wrap_ra_degrees(ra_deg) / 15.0
-    ra_total_minutes = int(ra_hours * 60.0)
-    ra_hour = (ra_total_minutes // 60) % 24
-    ra_minute = ra_total_minutes % 60
-
-    dec_sign = "+" if dec_deg >= 0 else "-"
-    dec_abs = abs(dec_deg)
-    dec_total_minutes = int(dec_abs * 60.0)
-    dec_degree = dec_total_minutes // 60
-    dec_minute = dec_total_minutes % 60
-
-    return f"J{ra_hour:02d}{ra_minute:02d}{dec_sign}{dec_degree:02d}{dec_minute:02d}"
-
-
-def sanitize_sample(
+def prepare_public_sample(
     private_sample: list[dict[str, object]],
 ) -> tuple[list[dict[str, object]], dict[str, str]]:
     public_sample: list[dict[str, object]] = []
     name_map: dict[str, str] = {}
-    used_names: set[str] = set()
 
-    for row in private_sample:
+    source_sample = list(private_sample)
+    existing_ids = {str(row["id"]) for row in source_sample}
+    source_sample.extend(
+        row for row in PUBLISHED_SUPPLEMENTS if str(row["id"]) not in existing_ids
+    )
+
+    for row in source_sample:
         identifier = str(row["id"])
-        fake_ra = wrap_ra_degrees(
-            float(row["ra"]) + deterministic_signed_range(identifier, "ra", 0.9, 4.2)
-        )
-        fake_dec = clamp(
-            float(row["dec"]) + deterministic_signed_range(identifier, "dec", 0.7, 2.8),
-            -89.5,
-            89.5,
-        )
-        fake_redshift = clamp(
-            float(row["redshift"]) + deterministic_signed_range(identifier, "redshift", 0.08, 0.32),
-            5.9,
-            8.8,
-        )
-        fake_muv = clamp(
-            float(row["muv"]) + deterministic_signed_range(identifier, "muv", 0.3, 0.95),
-            -29.5,
-            -20.5,
-        )
-        fake_jmag = clamp(
-            float(row["jmag"]) + deterministic_signed_range(identifier, "jmag", 0.2, 0.75),
-            20.0,
-            24.8,
-        )
-        fake_name = j2000_name_from_coords(fake_ra, fake_dec)
-
-        if fake_name == identifier or fake_name in used_names:
-            fake_ra = wrap_ra_degrees(fake_ra + 0.55)
-            fake_dec = clamp(fake_dec + (0.35 if fake_dec < 89.15 else -0.35), -89.5, 89.5)
-            fake_name = j2000_name_from_coords(fake_ra, fake_dec)
-
-        used_names.add(fake_name)
-        name_map[identifier] = fake_name
+        redshift, muv, jmag = PUBLISHED_VALUES[identifier]
+        name_map[identifier] = identifier
 
         public_sample.append(
             {
-                "id": fake_name,
-                "name": fake_name,
-                "ra": f"{fake_ra:.6f}",
-                "dec": f"{fake_dec:+.6f}",
-                "redshift": round(fake_redshift, 4),
-                "muv": round(fake_muv, 6),
-                "jmag": round(fake_jmag, 2),
+                "id": identifier,
+                "name": str(row.get("name", identifier)),
+                "ra": str(row["ra"]),
+                "dec": str(row["dec"]),
+                "redshift": redshift,
+                "muv": muv,
+                "jmag": jmag,
                 "group": row.get("group", "Published"),
                 "instrument": row.get("instrument", "Unknown"),
-                "publication": "Illustrative public sample",
-                "summary": (
-                    "Illustrative public sample with intentionally perturbed coordinates, "
-                    "redshifts, and magnitudes. Spectrum and cutout previews are placeholders."
-                ),
+                "publication": "Yang et al. (2026)",
+                "summary": "Published Euclid high-redshift quasar from Yang et al. (2026).",
                 "paperIds": row.get("paperIds", []),
-                "cutoutPreview": PUBLIC_CUTOUT_PLACEHOLDER,
-                "spectrumPreview": PUBLIC_SPECTRUM_PLACEHOLDER,
+                "cutoutPreview": f"assets/generated/cutouts/{identifier}.png",
+                "spectrumPreview": f"assets/generated/spectra/{identifier}.png",
                 "cutoutPath": "",
                 "spectrumPath": "",
             }
@@ -203,17 +178,22 @@ def write_public_csv(sample: list[dict[str, object]]) -> None:
             writer.writerow({field: row[field] for field in fieldnames})
 
 
-def write_placeholders() -> None:
-    spectrum_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-label="Spectrum placeholder">
-  <rect width="1200" height="420" fill="#000000"/>
-</svg>
-"""
-    cutout_svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-label="Cutout placeholder">
-  <rect width="1200" height="420" fill="#000000"/>
-</svg>
-"""
-    (PUBLIC_REPO / PUBLIC_SPECTRUM_PLACEHOLDER).write_text(spectrum_svg, encoding="utf-8")
-    (PUBLIC_REPO / PUBLIC_CUTOUT_PLACEHOLDER).write_text(cutout_svg, encoding="utf-8")
+def copy_preview_assets(sample: list[dict[str, object]]) -> None:
+    PUBLIC_CUTOUT_DIR.mkdir(parents=True, exist_ok=True)
+    PUBLIC_SPECTRUM_DIR.mkdir(parents=True, exist_ok=True)
+
+    for row in sample:
+        identifier = str(row["id"])
+        source_cutout = PRIVATE_CUTOUT_DIR / f"{identifier}.png"
+        source_spectrum = PRIVATE_SPECTRUM_DIR / f"{identifier}.png"
+
+        if not source_cutout.is_file():
+            raise FileNotFoundError(f"Missing cutout preview: {source_cutout}")
+        if not source_spectrum.is_file():
+            raise FileNotFoundError(f"Missing spectrum preview: {source_spectrum}")
+
+        shutil.copy2(source_cutout, PUBLIC_CUTOUT_DIR / source_cutout.name)
+        shutil.copy2(source_spectrum, PUBLIC_SPECTRUM_DIR / source_spectrum.name)
 
 
 def main() -> None:
@@ -228,7 +208,7 @@ def main() -> None:
     if not isinstance(private_sky_map, dict):
         raise ValueError("Expected private sky map JSON to contain an object.")
 
-    public_sample, name_map = sanitize_sample(private_sample)
+    public_sample, name_map = prepare_public_sample(private_sample)
     public_sky_map = sanitize_sky_map(private_sky_map)
 
     save_json(PUBLIC_SAMPLE_JSON, public_sample)
@@ -238,11 +218,11 @@ def main() -> None:
     write_public_sky_map_bundle(public_sky_map)
     sanitize_site_data(name_map)
     write_public_csv(public_sample)
-    write_placeholders()
+    copy_preview_assets(public_sample)
 
-    print(f"Wrote {len(public_sample)} fake public quasars.")
+    print(f"Wrote {len(public_sample)} real public quasars with scrubbed file paths.")
     print(f"Wrote {len(comparison_sample)} comparison quasars.")
-    print("Wrote scrubbed sky-map overlays and placeholder preview images.")
+    print("Wrote scrubbed sky-map overlays and real cutout/spectrum preview images.")
 
 
 if __name__ == "__main__":

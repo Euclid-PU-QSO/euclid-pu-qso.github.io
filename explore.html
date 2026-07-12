@@ -79,8 +79,8 @@
             <div class="plot-card">
               <div class="plot-header">
                 <div>
-                  <strong>Illustrative Euclid and published comparison samples</strong>
-                  <span>Public demo view with perturbed Euclid measurements and a published comparison sample</span>
+                  <strong>Euclid and published comparison samples</strong>
+                  <span>Published Euclid measurements and the ARAA comparison sample</span>
                 </div>
                 <div class="legend">
                   <span><i class="legend-dot euclid"></i>Euclid quasars</span>
@@ -88,7 +88,7 @@
                 </div>
               </div>
               <div class="plot-toolbar">
-                <p class="plot-instruction">Drag inside the plot to zoom. Click a Euclid quasar for illustrative placeholder previews.</p>
+                <p class="plot-instruction">Drag inside the plot to zoom. Click a Euclid quasar for details.</p>
               </div>
               <div class="plot-stage" id="plot-stage">
                 <svg
@@ -116,30 +116,30 @@
             <aside class="detail-card" id="quasar-detail">
               <div class="detail-card-scroll">
                 <p class="eyebrow">Object detail</p>
-                <h3>Illustrative public sample</h3>
+                <h3>J1729+6410</h3>
                 <div class="detail-grid">
                   <article>
                     <span>Coordinates</span>
-                    <strong>Perturbed in public demo</strong>
+                    <strong>262.261445, +64.171690</strong>
                   </article>
                   <article>
                     <span>Redshift</span>
-                    <strong>Illustrative</strong>
+                    <strong>7.77</strong>
                   </article>
                   <article>
                     <span>Muv</span>
-                    <strong>Illustrative</strong>
+                    <strong>-25.05</strong>
                   </article>
                   <article>
                     <span>J-band magnitude</span>
-                    <strong>Illustrative</strong>
+                    <strong>22.02</strong>
                   </article>
                 </div>
                 <div class="detail-linked-papers">
                   <h4 class="eyebrow">Papers including this object</h4>
                   <ul>
                     <li>
-                      <span>The interactive view loads the current demo object after JavaScript initializes.</span>
+                      <a href="papers.html#paper-yang-2026">Euclid: Discovery of 31 new quasars at 6.6 &lt; z &lt; 7.8 (Yang et al. 2026)</a>
                     </li>
                   </ul>
                 </div>
@@ -176,10 +176,14 @@
                 role="img"
                 aria-label="All-sky map of Euclid quasars in equatorial coordinates"
               ></svg>
+              <div class="sky-map-drag-hint" aria-hidden="true">
+                <span>↔</span> Drag horizontally
+              </div>
               <div class="plot-point-preview plot-point-preview-wide" id="sky-map-point-preview" hidden></div>
             </div>
             <p class="sky-map-note">
-              RA increases to the left. Drag horizontally to change the central right ascension. Public demo points use perturbed source positions and placeholder previews.
+              RA increases to the left. Drag horizontally to change the central right ascension. The footprint boundary is precomputed from the current RSD equatorial HEALPix map.
+              <span class="sky-map-credit">Gaia image credit: ESA/Gaia/DPAC, CC BY-SA 3.0 IGO.</span>
             </p>
           </div>
         </section>

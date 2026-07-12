@@ -900,6 +900,31 @@ h3 {
   aspect-ratio: 12 / 7;
 }
 
+.sky-map-drag-hint {
+  position: absolute;
+  top: 0.85rem;
+  left: 50%;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.68rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-overlay);
+  color: var(--ink-soft);
+  box-shadow: 0 6px 18px rgba(7, 13, 27, 0.12);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.sky-map-drag-hint span {
+  font-size: 1rem;
+}
+
 .sky-map-background-canvas {
   position: absolute;
   inset: 0;
@@ -917,8 +942,13 @@ h3 {
   height: auto;
   display: block;
   overflow: visible;
+  cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.sky-map:active {
+  cursor: grabbing;
 }
 
 .sky-map * {
@@ -996,6 +1026,12 @@ h3 {
   margin: 0.9rem 0 0;
   color: var(--ink-soft);
   font-size: 0.92rem;
+}
+
+.sky-map-credit {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.84rem;
 }
 
 .plot-point-preview-card.is-expandable {

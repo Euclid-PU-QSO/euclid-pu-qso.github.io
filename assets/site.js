@@ -880,30 +880,20 @@
       return;
     }
 
-    function firstName(name) {
+    function familyName(name) {
       const parts = String(name).trim().split(/\s+/);
-      return parts[0] || name;
-    }
-
-    function sortPriority(member) {
-      return Number.isFinite(member.sortPriority) ? member.sortPriority : 999;
+      return parts[parts.length - 1] || name;
     }
 
     const sortedTeam = [...data.team].sort((firstMember, secondMember) => {
-      const priorityDifference = sortPriority(firstMember) - sortPriority(secondMember);
-
-      if (priorityDifference) {
-        return priorityDifference;
-      }
-
       return (
-        firstName(firstMember.name).localeCompare(firstName(secondMember.name)) ||
+        familyName(firstMember.name).localeCompare(familyName(secondMember.name)) ||
         firstMember.name.localeCompare(secondMember.name)
       );
     });
 
     const state = {
-      view: "cards"
+      view: "list"
     };
 
     function renderViewButtons() {
@@ -1118,7 +1108,7 @@
         <div class="catalog-popover-panel" role="dialog" aria-modal="true" aria-label="${quasar.name}">
           <div class="popover-top">
             <div>
-              <p class="eyebrow">Illustrative source preview</p>
+              <p class="eyebrow">Published source preview</p>
               <h3>${quasar.name}</h3>
               <p class="paper-meta">${quasar.publication} / ${quasar.instrument} / z = ${quasar.redshift.toFixed(2)} / Muv = ${quasar.muv.toFixed(2)}</p>
             </div>
