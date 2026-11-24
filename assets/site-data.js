@@ -4,6 +4,20 @@ window.EuclidSiteData = {
   skyMapOverlays: window.EuclidSkyMapOverlays || null,
   papers: [
     {
+      id: "paper-wolf-2026",
+      title: "Euclid: Discovery of a quasar at z = 8.13 hosting a 360-million-solar-mass black hole",
+      year: 2026,
+      publishedDate: "2026-11-24",
+      authors: "J. Wolf, S. Belladitta, D. Yang et al.",
+      venue: "A&A, 715, A356",
+      description:
+        "Euclid imaging identified J1504+6252. Its JWST spectrum gives a systemic redshift of 8.129 and a black hole mass of about 360 million solar masses from the broad Hβ line.",
+      tags: ["selection", "JWST", "BH mass"],
+      previewFigures: "Figs. 1 and 3",
+      adsUrl: "https://www.aanda.org/articles/aa/full_html/2026/11/aa62243-26/aa62243-26.html",
+      relatedQuasarIds: ["J1504+6252"]
+    },
+    {
       id: "paper-barnett-2019",
       title: "Euclid preparation. V. Predicted yield of redshift 7 < z < 9 quasars from the wide survey",
       year: 2019,

@@ -8,6 +8,10 @@
   const page = document.body.dataset.page;
   const paperLookup = new Map(data.papers.map((paper) => [paper.id, paper]));
   const quasarLookup = new Map(data.euclidQuasars.map((quasar) => [quasar.id, quasar]));
+  const redshiftFormat = new Intl.NumberFormat("en", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4
+  });
   const paperKeywordOptions = [
     "sample",
     "selection",
@@ -781,7 +785,7 @@
               </td>
               <td class="mono">${quasar.ra}</td>
               <td class="mono">${quasar.dec}</td>
-              <td>${quasar.redshift.toFixed(2)}</td>
+              <td>${redshiftFormat.format(quasar.redshift)}</td>
               <td>${quasar.muv.toFixed(2)}</td>
               <td>${quasar.jmag.toFixed(2)}</td>
               <td>${quasar.instrument}</td>
@@ -984,7 +988,7 @@
           </article>
           <article>
             <span>Redshift</span>
-            <strong>${quasar.redshift.toFixed(2)}</strong>
+            <strong>${redshiftFormat.format(quasar.redshift)}</strong>
           </article>
           <article>
             <span>Muv</span>
@@ -1075,6 +1079,12 @@
 
     function open(quasar, options = {}) {
       const { includeCutout = false, compact = false } = options;
+      const figurePaper = (quasar.paperIds || [])
+        .map((id) => paperLookup.get(id))
+        .find((paper) => paper?.previewFigures);
+      const figureCredit = figurePaper
+        ? `<p class="paper-meta">Figures from <a href="${figurePaper.adsUrl}">${quasar.publication}, ${figurePaper.previewFigures}</a> (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>).</p>`
+        : "";
       const cutoutBlock = includeCutout
         ? `
             <article class="popover-media-card">
@@ -1097,6 +1107,7 @@
               </article>
               ${cutoutBlock}
             </div>
+            ${figureCredit}
           </div>
         `;
         popover.hidden = false;
@@ -1110,7 +1121,7 @@
             <div>
               <p class="eyebrow">Published source preview</p>
               <h3>${quasar.name}</h3>
-              <p class="paper-meta">${quasar.publication} / ${quasar.instrument} / z = ${quasar.redshift.toFixed(2)} / Muv = ${quasar.muv.toFixed(2)}</p>
+              <p class="paper-meta">${quasar.publication} / ${quasar.instrument} / z = ${redshiftFormat.format(quasar.redshift)} / Muv = ${quasar.muv.toFixed(2)}</p>
             </div>
             <button class="popover-close" type="button" data-popover-close aria-label="Close preview">Close</button>
           </div>
@@ -1132,6 +1143,7 @@
             </article>
             ${cutoutBlock}
           </div>
+          ${figureCredit}
         </div>
       `;
       popover.hidden = false;
@@ -1473,7 +1485,7 @@
         "data-quasar-id": quasar.id,
         tabindex: "0",
         role: "button",
-        "aria-label": `${quasar.name}, redshift ${quasar.redshift.toFixed(2)}, Muv ${quasar.muv.toFixed(2)}`
+        "aria-label": `${quasar.name}, redshift ${redshiftFormat.format(quasar.redshift)}, Muv ${quasar.muv.toFixed(2)}`
       });
 
       function activate() {

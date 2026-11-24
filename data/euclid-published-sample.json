@@ -556,5 +556,25 @@
     "spectrumPreview": "assets/generated/spectra/J1729+6410.png",
     "cutoutPath": "",
     "spectrumPath": ""
+  },
+  {
+    "id": "J1504+6252",
+    "name": "J1504+6252",
+    "ra": "226.217879",
+    "dec": "+62.873442",
+    "redshift": 8.129,
+    "muv": -24.08,
+    "jmag": 22.96,
+    "group": "Published",
+    "instrument": "JWST/NIRSpec",
+    "publication": "Wolf et al. (2026)",
+    "summary": "EUCL J150452.291+625224.39 (D\u00fan Aonghasa) was selected from Euclid imaging. Its narrow H\u03b2 line gives a systemic redshift of 8.129 \u00b1 0.005.",
+    "paperIds": [
+      "paper-wolf-2026"
+    ],
+    "cutoutPreview": "assets/generated/cutouts/J1504+6252.png",
+    "spectrumPreview": "assets/generated/spectra/J1504+6252.png",
+    "cutoutPath": "",
+    "spectrumPath": ""
   }
 ]

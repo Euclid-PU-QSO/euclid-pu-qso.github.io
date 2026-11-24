@@ -12,6 +12,7 @@ PRIVATE_REPO = WORKSPACE_ROOT / "euclid_qso_repo"
 PUBLIC_REPO = Path(__file__).resolve().parents[1]
 
 PRIVATE_SAMPLE_JSON = PRIVATE_REPO / "data" / "euclid-published-sample.json"
+LITERATURE_SAMPLE_JSON = PRIVATE_REPO / "data" / "literature-quasars.json"
 PRIVATE_COMPARISON_JSON = PRIVATE_REPO / "data" / "other-quasar-sample.json"
 PRIVATE_SKY_MAP_JSON = PRIVATE_REPO / "data" / "sky-map-overlays.json"
 PRIVATE_SITE_DATA_JS = PRIVATE_REPO / "assets" / "site-data.js"
@@ -87,11 +88,15 @@ def save_json(path: Path, payload: object) -> None:
 
 def prepare_public_sample(
     private_sample: list[dict[str, object]],
+    literature_sample: list[dict[str, object]],
 ) -> tuple[list[dict[str, object]], dict[str, str]]:
     public_sample: list[dict[str, object]] = []
     name_map: dict[str, str] = {}
 
-    source_sample = list(private_sample)
+    # Use the paper record for later discoveries, even if a private working row exists.
+    literature_ids = {row["id"] for row in literature_sample}
+    source_sample = [row for row in private_sample if row["id"] not in literature_ids]
+    source_sample.extend(literature_sample)
     existing_ids = {str(row["id"]) for row in source_sample}
     source_sample.extend(
         row for row in PUBLISHED_SUPPLEMENTS if str(row["id"]) not in existing_ids
@@ -99,7 +104,14 @@ def prepare_public_sample(
 
     for row in source_sample:
         identifier = str(row["id"])
-        redshift, muv, jmag = PUBLISHED_VALUES[identifier]
+        if identifier in literature_ids:
+            redshift, muv, jmag = row["redshift"], row["muv"], row["jmag"]
+            publication = row["publication"]
+            summary = row["summary"]
+        else:
+            redshift, muv, jmag = PUBLISHED_VALUES[identifier]
+            publication = "Yang et al. (2026)"
+            summary = "Published Euclid high-redshift quasar from Yang et al. (2026)."
         name_map[identifier] = identifier
 
         public_sample.append(
@@ -113,8 +125,8 @@ def prepare_public_sample(
                 "jmag": jmag,
                 "group": row.get("group", "Published"),
                 "instrument": row.get("instrument", "Unknown"),
-                "publication": "Yang et al. (2026)",
-                "summary": "Published Euclid high-redshift quasar from Yang et al. (2026).",
+                "publication": publication,
+                "summary": summary,
                 "paperIds": row.get("paperIds", []),
                 "cutoutPreview": f"assets/generated/cutouts/{identifier}.png",
                 "spectrumPreview": f"assets/generated/spectra/{identifier}.png",
@@ -208,7 +220,7 @@ def main() -> None:
     if not isinstance(private_sky_map, dict):
         raise ValueError("Expected private sky map JSON to contain an object.")
 
-    public_sample, name_map = prepare_public_sample(private_sample)
+    public_sample, name_map = prepare_public_sample(private_sample, load_json(LITERATURE_SAMPLE_JSON))
     public_sky_map = sanitize_sky_map(private_sky_map)
 
     save_json(PUBLIC_SAMPLE_JSON, public_sample)
